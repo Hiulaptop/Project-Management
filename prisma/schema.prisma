@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  SUPERUSER
+  ADMIN
+  USER
+}
+
+enum ProjectRole {
+  MANAGER
+  MEMBER
+}
+
+enum DeadlineStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+model User {
+  id              String               @id @default(uuid())
+  email           String               @unique
+  username        String               @unique
+  password        String
+  fullname        String?
+  phone_number    String
+  role            UserRole             @default(USER)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  projects        Project[]            @relation("ProjectOwner")
+  project_members Project_members[]
+  deadlines_set   Deadlines[]          @relation("DeadlineSetter")
+  my_deadlines    Deadline_assignees[]
+  colleagues      User[]               @relation("UserColleagues")
+  colleagues_of   User[]               @relation("UserColleagues")
+}
+
+model Project {
+  id          BigInt            @id @default(autoincrement())
+  owner       User              @relation("ProjectOwner", fields: [owner_id], references: [id])
+  owner_id    String
+  title       String
+  description String?           @db.Text
+  start_date  DateTime
+  end_date    DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  members     Project_members[]
+  deadlines   Deadlines[]
+}
+
+model Project_members {
+  project         Project     @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project_id      BigInt
+  member          User        @relation(fields: [member_id], references: [id], onDelete: Cascade)
+  member_id       String
+  role_in_project ProjectRole @default(MEMBER)
+  join_at         DateTime    @default(now())
+
+  @@id([project_id, member_id])
+}
+
+model Deadline_assignees {
+  deadline    Deadlines @relation(fields: [deadline_id], references: [id], onDelete: Cascade)
+  deadline_id BigInt
+  assignee    User      @relation(fields: [assignee_id], references: [id], onDelete: Cascade)
+  assignee_id String
+  assigned_at DateTime  @default(now())
+
+  @@id([deadline_id, assignee_id])
+}
+
+model Deadlines {
+  id            BigInt               @id @default(autoincrement())
+  project       Project              @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project_id    BigInt
+  setter        User                 @relation("DeadlineSetter", fields: [setter_id], references: [id])
+  setter_id     String
+  title         String
+  description   String?              @db.Text
+  deadline_date DateTime
+  status        DeadlineStatus       @default(TODO)
+  feedback      String?              @db.Text
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  assignees     Deadline_assignees[]
+}
