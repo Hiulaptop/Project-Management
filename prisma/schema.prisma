@@ -20,6 +20,7 @@ enum UserRole {
 }
 
 enum ProjectRole {
+  OWNER
   MANAGER
   MEMBER
 }
@@ -31,71 +32,115 @@ enum DeadlineStatus {
   DONE
 }
 
+enum ColleagueStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
 model User {
-  id              String               @id @default(uuid())
-  email           String               @unique
-  username        String               @unique
-  password        String
-  fullname        String?
-  phone_number    String
-  role            UserRole             @default(USER)
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  projects        Project[]            @relation("ProjectOwner")
-  project_members Project_members[]
-  deadlines_set   Deadlines[]          @relation("DeadlineSetter")
-  my_deadlines    Deadline_assignees[]
-  colleagues      User[]               @relation("UserColleagues")
-  colleagues_of   User[]               @relation("UserColleagues")
+  id           String   @id @default(uuid())
+  email        String   @unique
+  username     String   @unique
+  password     String
+  fullname     String?
+  phone_number String?  @unique
+  role         UserRole @default(USER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // RBAC & PROJECT
+  ownedProjects   Project[]          @relation("ProjectOwner")
+  projectMembers  Project_members[]
+  deadlinesSet    Deadlines[]         @relation("DeadlineSetter")
+  deadlineAssigns Deadline_assignees[]
+
+  // COLLEAGUES
+  colleaguesSent     UserColleague[] @relation("ColleagueSender")
+  colleaguesReceived UserColleague[] @relation("ColleagueReceiver")
+}
+
+model UserColleague {
+  sender    User   @relation("ColleagueSender", fields: [sender_id], references: [id], onDelete: Cascade)
+  sender_id String
+
+  receiver    User   @relation("ColleagueReceiver", fields: [receiver_id], references: [id], onDelete: Cascade)
+  receiver_id String
+
+  status    ColleagueStatus @default(PENDING)
+  createdAt DateTime        @default(now())
+
+  @@id([sender_id, receiver_id])
+  @@index([receiver_id])
 }
 
 model Project {
-  id          BigInt            @id @default(autoincrement())
-  owner       User              @relation("ProjectOwner", fields: [owner_id], references: [id])
-  owner_id    String
+  id       BigInt @id @default(autoincrement())
+  owner    User   @relation("ProjectOwner", fields: [owner_id], references: [id])
+  owner_id String
+
   title       String
-  description String?           @db.Text
+  description String?   @db.Text
   start_date  DateTime
   end_date    DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  members     Project_members[]
-  deadlines   Deadlines[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members   Project_members[]
+  deadlines Deadlines[]
+
+  @@index([owner_id])
 }
 
 model Project_members {
-  project         Project     @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  project_id      BigInt
-  member          User        @relation(fields: [member_id], references: [id], onDelete: Cascade)
-  member_id       String
+  project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project_id BigInt
+
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id String
+
   role_in_project ProjectRole @default(MEMBER)
   join_at         DateTime    @default(now())
 
-  @@id([project_id, member_id])
+  @@id([project_id, user_id])
+  @@index([user_id])
 }
 
 model Deadline_assignees {
   deadline    Deadlines @relation(fields: [deadline_id], references: [id], onDelete: Cascade)
   deadline_id BigInt
-  assignee    User      @relation(fields: [assignee_id], references: [id], onDelete: Cascade)
-  assignee_id String
-  assigned_at DateTime  @default(now())
 
-  @@id([deadline_id, assignee_id])
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id String
+
+  assigned_at DateTime @default(now())
+
+  @@id([deadline_id, user_id])
+  @@index([user_id])
 }
 
 model Deadlines {
-  id            BigInt               @id @default(autoincrement())
-  project       Project              @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  project_id    BigInt
-  setter        User                 @relation("DeadlineSetter", fields: [setter_id], references: [id])
-  setter_id     String
+  id BigInt @id @default(autoincrement())
+
+  project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project_id BigInt
+
+  setter    User   @relation("DeadlineSetter", fields: [setter_id], references: [id])
+  setter_id String
+
   title         String
-  description   String?              @db.Text
+  description   String?        @db.Text
   deadline_date DateTime
-  status        DeadlineStatus       @default(TODO)
-  feedback      String?              @db.Text
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
-  assignees     Deadline_assignees[]
+  status        DeadlineStatus @default(TODO)
+  feedback      String?        @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignees Deadline_assignees[]
+
+  @@index([project_id])
+  @@index([deadline_date])
 }
