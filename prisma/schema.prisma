@@ -43,8 +43,8 @@ model User {
   email        String   @unique
   username     String   @unique
   password     String
-  fullname     String?
-  phone_number String?  @unique
+  fullname     String
+  phone_number String  @unique
   role         UserRole @default(USER)
 
   createdAt DateTime @default(now())
