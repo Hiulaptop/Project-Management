@@ -57,3 +57,9 @@ export async function getSession(): Promise<SessionPayload | null> {
   if (!session) return null;
   return await decrypt(session);
 }
+
+export async function getAuthUser() {
+  const session = await getSession();
+  if (!session || !session.userId) return null;
+  return session;
+}
