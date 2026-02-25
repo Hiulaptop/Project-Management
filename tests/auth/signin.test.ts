@@ -1,4 +1,4 @@
-import { POST } from "@/app/api/auth/signin";
+import { POST } from "@/app/api/auth/signin/route";
 import { NextRequest } from "next/server";
 import db from "@/lib/db";
 import * as auth from "@/lib/auth";
