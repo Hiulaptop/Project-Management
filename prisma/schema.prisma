@@ -59,6 +59,9 @@ model User {
   // COLLEAGUES
   colleaguesSent     UserColleague[] @relation("ColleagueSender")
   colleaguesReceived UserColleague[] @relation("ColleagueReceiver")
+
+  // NOTIFICATION
+  notifications Notification[]
 }
 
 model UserColleague {
