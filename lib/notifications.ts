@@ -1,5 +1,5 @@
 import db from "@/lib/db";
-import { NotificationType } from "@/prisma/generated/prisma/client";
+import { NotificationType } from "@prisma/client";
 
 interface CreateNotificationParams {
     userId: string;

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { serializeBigInt } from "@/lib/json";
-import { DeadlineStatus } from "@/prisma/generated/prisma/client";
+import { DeadlineStatus } from "@prisma/client";
 
 
 // GET /api/projects/:id/deadlines
