@@ -144,3 +144,37 @@ model Deadlines {
   @@index([project_id])
   @@index([deadline_date])
 }
+
+enum NotificationType {
+  COLLEAGUE_REQUEST
+  COLLEAGUE_ACCEPTED
+  PROJECT_INVITED
+  DEADLINE_ASSIGNED
+  DEADLINE_APPROACHING
+  DEADLINE_STATUS_CHANGED
+  DEADLINE_FEEDBACK
+  MEMBER_ROLE_CHANGED
+  MEMBER_REMOVED
+}
+
+model Notification {
+  id      BigInt @id @default(autoincrement())
+
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id String
+
+  type    NotificationType
+  title   String
+  message String @db.Text
+
+  // Optional reference IDs for deep-linking
+  project_id   BigInt?
+  deadline_id  BigInt?
+  from_user_id String?
+
+  is_read   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([user_id, is_read])
+  @@index([createdAt])
+}
