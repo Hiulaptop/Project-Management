@@ -89,9 +89,10 @@ export const members = {
 import type { Deadline } from "./types";
 
 export const deadlines = {
-  list: (projectId: string, params?: { status?: string; sort_by?: string; order?: string }) => {
+  list: (projectId: string, params?: { status?: string; priority?: string; sort_by?: string; order?: string }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
+    if (params?.priority) qs.set("priority", params.priority);
     if (params?.sort_by) qs.set("sort_by", params.sort_by);
     if (params?.order) qs.set("order", params.order);
     const query = qs.toString();
@@ -101,13 +102,13 @@ export const deadlines = {
   get: (projectId: string, deadlineId: string) =>
     request<{ deadline: Deadline }>(`/api/projects/${projectId}/deadlines/${deadlineId}`),
 
-  create: (projectId: string, body: { title: string; description?: string; deadline_date: string; assignee_ids?: string[] }) =>
+  create: (projectId: string, body: { title: string; description?: string; deadline_date: string; assignee_ids?: string[]; priority?: string; completion?: number; target?: string; result_links?: string; output?: string }) =>
     request<{ message: string; deadline: Deadline }>(`/api/projects/${projectId}/deadlines`, {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
-  update: (projectId: string, deadlineId: string, body: Partial<{ title: string; description: string; deadline_date: string }>) =>
+  update: (projectId: string, deadlineId: string, body: Partial<{ title: string; description: string; deadline_date: string; priority: string; completion: number; target: string; result_links: string; output: string }>) =>
     request<{ message: string; deadline: Deadline }>(`/api/projects/${projectId}/deadlines/${deadlineId}`, {
       method: "PATCH",
       body: JSON.stringify(body),
@@ -196,9 +197,99 @@ export const notifications = {
 };
 
 // ─── Users search ───
-import type { SearchUser } from "./types";
+import type { SearchUser, ActivityLog, ChatMessage } from "./types";
 
 export const users = {
   search: (search: string, limit = 20) =>
     request<{ users: SearchUser[] }>(`/api/users?search=${encodeURIComponent(search)}&limit=${limit}`),
+};
+
+// ─── Project Copy ───
+export const projectCopy = {
+  copy: (projectId: string, body: { title: string }) =>
+    request<{ message: string; project: Project }>(`/api/projects/${projectId}/copy`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+};
+
+// ─── Deadline Copy ───
+export const deadlineCopy = {
+  copy: (projectId: string, deadlineId: string, body?: { title?: string }) =>
+    request<{ message: string; deadline: Deadline }>(`/api/projects/${projectId}/deadlines/${deadlineId}/copy`, {
+      method: "POST",
+      body: JSON.stringify(body ?? {}),
+    }),
+};
+
+// ─── Activities ───
+export const activities = {
+  list: (projectId: string, params?: { cursor?: string; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.cursor) qs.set("cursor", params.cursor);
+    if (params?.limit) qs.set("limit", params.limit.toString());
+    const query = qs.toString();
+    return request<{ activities: ActivityLog[]; nextCursor: string | null }>(
+      `/api/projects/${projectId}/activities${query ? `?${query}` : ""}`
+    );
+  },
+};
+
+// ─── Gantt ───
+export const gantt = {
+  getData: (projectId: string) =>
+    request<{
+      project: { id: string; title: string; start_date: string | null; end_date: string | null };
+      items: Array<{
+        id: string;
+        title: string;
+        start: string;
+        end: string;
+        status: string;
+        priority: string | null;
+        completion: number;
+        assignees: Array<{ id: string; fullname: string; username: string }>;
+      }>;
+    }>(`/api/projects/${projectId}/gantt`),
+};
+
+// ─── Chat ───
+export const chat = {
+  list: (params?: { cursor?: string; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.cursor) qs.set("cursor", params.cursor);
+    if (params?.limit) qs.set("limit", params.limit.toString());
+    const query = qs.toString();
+    return request<{ messages: ChatMessage[]; nextCursor: string | null }>(
+      `/api/chat${query ? `?${query}` : ""}`
+    );
+  },
+
+  send: (body: { message: string }) =>
+    request<{ message: string; chatMessage: ChatMessage }>("/api/chat", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+};
+
+// ─── Dashboard ───
+export const dashboard = {
+  stats: () =>
+    request<{
+      totalProjects: number;
+      totalDeadlines: number;
+      statusCounts: Record<string, number>;
+      priorityCounts: Record<string, number>;
+      overdueCount: number;
+      averageCompletion: number;
+      myAssignments: number;
+      projects: Array<{
+        id: string;
+        title: string;
+        totalDeadlines: number;
+        completedDeadlines: number;
+        memberCount: number;
+        averageCompletion: number;
+      }>;
+    }>("/api/dashboard/stats"),
 };

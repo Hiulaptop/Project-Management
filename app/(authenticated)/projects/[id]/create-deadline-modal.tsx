@@ -4,7 +4,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { deadlines as dlApi, members as membersApi } from "@/lib/api";
 import type { ProjectMember } from "@/lib/types";
 import Modal from "@/components/ui/modal";
-import { Input, Textarea, Button } from "@/components/ui/form";
+import { Input, Textarea, Button, Select } from "@/components/ui/form";
 
 interface Props {
   projectId: string;
@@ -17,6 +17,9 @@ export default function CreateDeadlineModal({ projectId, onClose, onCreated }: P
     title: "",
     description: "",
     deadline_date: "",
+    priority: "MEDIUM",
+    target: "",
+    output: "",
   });
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [membersList, setMembersList] = useState<ProjectMember[]>([]);
@@ -47,6 +50,9 @@ export default function CreateDeadlineModal({ projectId, onClose, onCreated }: P
         description: form.description || undefined,
         deadline_date: form.deadline_date,
         assignee_ids: selectedAssignees.length > 0 ? selectedAssignees : undefined,
+        priority: form.priority,
+        target: form.target || undefined,
+        output: form.output || undefined,
       });
       onCreated();
     } catch (err) {
@@ -86,6 +92,31 @@ export default function CreateDeadlineModal({ projectId, onClose, onCreated }: P
           value={form.deadline_date}
           onChange={(e) => update("deadline_date", e.target.value)}
           required
+        />
+
+        <Select
+          label="Độ ưu tiên"
+          options={[
+            { value: "HIGH", label: "Cao" },
+            { value: "MEDIUM", label: "Trung bình" },
+            { value: "LOW", label: "Thấp" },
+          ]}
+          value={form.priority}
+          onChange={(e) => update("priority", e.target.value)}
+        />
+
+        <Input
+          label="Mục tiêu"
+          value={form.target}
+          onChange={(e) => update("target", e.target.value)}
+          placeholder="Mục tiêu cần đạt (tuỳ chọn)"
+        />
+
+        <Input
+          label="Sản phẩm đầu ra"
+          value={form.output}
+          onChange={(e) => update("output", e.target.value)}
+          placeholder="Kết quả mong đợi (tuỳ chọn)"
         />
 
         {/* Assignees */}

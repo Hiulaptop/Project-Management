@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { serializeBigInt } from "@/lib/json";
+import { logActivity } from "@/lib/activity";
 
 // PATCH /api/projects/:id/members/:userId — Update member role
 export async function PATCH(
@@ -62,6 +63,8 @@ export async function PATCH(
         },
       },
     });
+
+    await logActivity(projectId, session.userId, "MEMBER_ROLE_CHANGED", `Changed ${updated.user.fullname}'s role to ${role_in_project}`);
 
     return NextResponse.json(
       { message: "Role updated successfully", member: serializeBigInt(updated) },
@@ -139,6 +142,8 @@ export async function DELETE(
         },
       },
     });
+
+    await logActivity(projectId, session.userId, "MEMBER_REMOVED", `Removed member: ${targetMember.user_id}`);
 
     return NextResponse.json(
       { message: "Member removed successfully" },

@@ -23,6 +23,7 @@ export interface UserProfile extends User {
 
 export type ProjectRole = "OWNER" | "MANAGER" | "MEMBER";
 export type DeadlineStatus = "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
+export type DeadlinePriority = "HIGH" | "MEDIUM" | "LOW";
 export type ColleagueStatus = "PENDING" | "ACCEPTED" | "BLOCKED";
 
 export interface ProjectMember {
@@ -65,7 +66,12 @@ export interface Deadline {
   description: string | null;
   deadline_date: string;
   status: DeadlineStatus;
+  priority: DeadlinePriority;
+  completion: number;
   feedback: string | null;
+  target: string | null;
+  result_links: string | null;
+  output: string | null;
   createdAt: string;
   updatedAt: string;
   setter?: User;
@@ -102,6 +108,24 @@ export interface Notification {
 
 export interface SearchUser extends User {
   colleague_status: ColleagueStatus | null;
+}
+
+export interface ActivityLog {
+  id: string;
+  project_id: string;
+  user_id: string;
+  action: string;
+  details: string;
+  createdAt: string;
+  user?: User;
+}
+
+export interface ChatMessage {
+  id: string;
+  user_id: string;
+  message: string;
+  createdAt: string;
+  user?: User;
 }
 
 export interface ApiError {

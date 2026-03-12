@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { serializeBigInt } from "@/lib/json";
+import { logActivity } from "@/lib/activity";
 
 // GET /api/projects/:id
 export async function GET(
@@ -112,6 +113,8 @@ export async function PATCH(
             where: { id: projectId },
             data: updateData,
         });
+
+        await logActivity(projectId, session.userId, "PROJECT_UPDATED", `Updated project: ${project.title}`);
 
         return NextResponse.json(
             { message: "Project updated successfully", project: serializeBigInt(project) },

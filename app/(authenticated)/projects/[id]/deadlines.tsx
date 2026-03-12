@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Deadline, ProjectRole, DeadlineStatus } from "@/lib/types";
-import { deadlines as dlApi } from "@/lib/api";
+import { deadlines as dlApi, deadlineCopy } from "@/lib/api";
 import { Button, Select } from "@/components/ui/form";
 import Badge from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/spinner";
@@ -24,14 +24,26 @@ const statusFilters = [
   { value: "DONE", label: "Hoàn thành" },
 ];
 
+const priorityFilters = [
+  { value: "", label: "Tất cả ưu tiên" },
+  { value: "HIGH", label: "Cao" },
+  { value: "MEDIUM", label: "Trung bình" },
+  { value: "LOW", label: "Thấp" },
+];
+
 export default function ProjectDeadlines({ projectId, deadlines, myRole, onRefresh }: Props) {
   const [filter, setFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [selectedDl, setSelectedDl] = useState<Deadline | null>(null);
 
   const canManage = myRole === "OWNER" || myRole === "MANAGER";
 
-  const filtered = filter ? deadlines.filter((d) => d.status === filter) : deadlines;
+  const filtered = deadlines.filter((d) => {
+    if (filter && d.status !== filter) return false;
+    if (priorityFilter && d.priority !== priorityFilter) return false;
+    return true;
+  });
 
   // Group by status
   const grouped: Record<string, Deadline[]> = {
@@ -53,16 +65,34 @@ export default function ProjectDeadlines({ projectId, deadlines, myRole, onRefre
     }
   }
 
+  async function handleCopyDeadline(e: React.MouseEvent, deadlineId: string) {
+    e.stopPropagation();
+    try {
+      await deadlineCopy.copy(projectId, deadlineId);
+      onRefresh();
+    } catch {
+      // handle
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">
-        <Select
-          options={statusFilters}
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="w-40"
-        />
+        <div className="flex items-center gap-2">
+          <Select
+            options={statusFilters}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-40"
+          />
+          <Select
+            options={priorityFilters}
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="w-44"
+          />
+        </div>
         {canManage && (
           <Button size="sm" onClick={() => setShowCreate(true)}>
             + Tạo nhiệm vụ
@@ -109,10 +139,29 @@ export default function ProjectDeadlines({ projectId, deadlines, myRole, onRefre
                       </select>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-card-foreground truncate">{dl.title}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-card-foreground truncate">{dl.title}</p>
+                          {dl.priority && <Badge variant="priority" value={dl.priority} />}
+                        </div>
                         {dl.description && (
                           <p className="text-xs text-muted-foreground truncate mt-0.5">{dl.description}</p>
                         )}
+                        {/* Completion bar */}
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <div className="h-1.5 flex-1 max-w-[120px] rounded-full bg-secondary">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                dl.completion === 100
+                                  ? "bg-green-500"
+                                  : dl.completion >= 50
+                                  ? "bg-blue-500"
+                                  : "bg-amber-500"
+                              }`}
+                              style={{ width: `${dl.completion}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">{dl.completion}%</span>
+                        </div>
                       </div>
 
                       {/* Assignees avatars */}
@@ -135,7 +184,7 @@ export default function ProjectDeadlines({ projectId, deadlines, myRole, onRefre
                         </div>
                       )}
 
-                      {/* Date */}
+                      {/* Date + Copy */}
                       <span
                         className={`text-xs whitespace-nowrap ${
                           new Date(dl.deadline_date) < new Date() && dl.status !== "DONE"
@@ -145,6 +194,16 @@ export default function ProjectDeadlines({ projectId, deadlines, myRole, onRefre
                       >
                         {new Date(dl.deadline_date).toLocaleDateString("vi-VN")}
                       </span>
+
+                      {canManage && (
+                        <button
+                          onClick={(e) => handleCopyDeadline(e, dl.id)}
+                          title="Nhân bản nhiệm vụ"
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                        >
+                          📋
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

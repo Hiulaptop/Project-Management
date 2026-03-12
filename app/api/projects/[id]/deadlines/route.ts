@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { serializeBigInt } from "@/lib/json";
-import { DeadlineStatus } from "@prisma/client";
+import { logActivity } from "@/lib/activity";
+import { DeadlineStatus, DeadlinePriority } from "@prisma/client";
 
 
 // GET /api/projects/:id/deadlines
@@ -41,6 +42,11 @@ export async function GET(
         const where: Record<string, unknown> = { project_id: projectId };
         if (status && Object.values(DeadlineStatus).includes(status as DeadlineStatus)) {
             where.status = status;
+        }
+
+        const priority = searchParams.get("priority");
+        if (priority && Object.values(DeadlinePriority).includes(priority as DeadlinePriority)) {
+            where.priority = priority;
         }
 
         const deadlines = await db.deadlines.findMany({
@@ -102,11 +108,27 @@ export async function POST(
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const { title, description, deadline_date, assignee_ids } = await request.json();
+        const { title, description, deadline_date, assignee_ids, priority, completion, target, result_links, output } = await request.json();
 
         if (!title || !deadline_date) {
             return NextResponse.json(
                 { error: "Title and deadline_date are required" },
+                { status: 400 }
+            );
+        }
+
+        // Validate priority
+        if (priority && !Object.values(DeadlinePriority).includes(priority)) {
+            return NextResponse.json(
+                { error: "Invalid priority. Must be HIGH, MEDIUM, or LOW" },
+                { status: 400 }
+            );
+        }
+
+        // Validate completion
+        if (completion !== undefined && (completion < 0 || completion > 100)) {
+            return NextResponse.json(
+                { error: "Completion must be between 0 and 100" },
                 { status: 400 }
             );
         }
@@ -135,6 +157,11 @@ export async function POST(
                 title,
                 description: description || null,
                 deadline_date: new Date(deadline_date),
+                priority: priority || "MEDIUM",
+                completion: completion ?? 0,
+                target: target || null,
+                result_links: result_links || null,
+                output: output || null,
                 assignees:
                     assignee_ids && assignee_ids.length > 0
                         ? {
@@ -159,6 +186,8 @@ export async function POST(
                 },
             },
         });
+
+        await logActivity(projectId, session.userId, "DEADLINE_CREATED", `Created deadline: ${deadline.title}`);
 
         return NextResponse.json(
             { message: "Deadline created successfully", deadline: serializeBigInt(deadline) },

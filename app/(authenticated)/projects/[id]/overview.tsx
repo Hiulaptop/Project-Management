@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { Project } from "@/lib/types";
 import Badge from "@/components/ui/badge";
 
@@ -81,6 +82,12 @@ export default function ProjectOverview({ project }: { project: Project }) {
               value={project.deadlines?.filter((d) => d.status === "IN_PROGRESS").length || 0}
             />
           </div>
+          <Link
+            href={`/projects/${project.id}/gantt`}
+            className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary transition-colors"
+          >
+            📊 Biểu đồ Gantt
+          </Link>
         </div>
 
         {/* Members preview */}

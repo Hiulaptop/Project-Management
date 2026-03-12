@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { projects as projectsApi } from "@/lib/api";
+import { projects as projectsApi, projectCopy } from "@/lib/api";
 import type { Project, ProjectRole } from "@/lib/types";
 import { PageLoader } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/form";
@@ -12,8 +12,9 @@ import ProjectOverview from "@/app/(authenticated)/projects/[id]/overview";
 import ProjectDeadlines from "@/app/(authenticated)/projects/[id]/deadlines";
 import ProjectMembers from "@/app/(authenticated)/projects/[id]/members";
 import EditProjectModal from "@/app/(authenticated)/projects/[id]/edit-modal";
+import ActivityTimeline from "@/app/(authenticated)/projects/[id]/activity-timeline";
 
-type Tab = "overview" | "deadlines" | "members";
+type Tab = "overview" | "deadlines" | "members" | "activity";
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -23,6 +24,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [showEdit, setShowEdit] = useState(false);
   const [myRole, setMyRole] = useState<ProjectRole>("MEMBER");
+  const [copying, setCopying] = useState(false);
 
   const loadProject = useCallback(async () => {
     try {
@@ -59,6 +61,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     { key: "overview", label: "Tổng quan" },
     { key: "deadlines", label: "Nhiệm vụ", count: project.deadlines?.length || 0 },
     { key: "members", label: "Thành viên", count: project.members?.length || 0 },
+    { key: "activity", label: "Nhật ký" },
   ];
 
   return (
@@ -82,9 +85,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           )}
         </div>
         {canEdit && (
-          <Button variant="secondary" size="sm" onClick={() => setShowEdit(true)}>
-            ✏️ Chỉnh sửa
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={async () => {
+              const title = prompt("Tên dự án mới:", `${project.title} (Bản sao)`);
+              if (!title) return;
+              setCopying(true);
+              try {
+                const data = await projectCopy.copy(id, { title });
+                router.push(`/projects/${data.project.id}`);
+              } catch {
+                setCopying(false);
+              }
+            }} loading={copying}>
+              📋 Sao chép
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowEdit(true)}>
+              ✏️ Chỉnh sửa
+            </Button>
+          </div>
         )}
       </div>
 
@@ -119,6 +137,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       {activeTab === "members" && (
         <ProjectMembers projectId={id} members={project.members || []} myRole={myRole} onRefresh={loadProject} />
       )}
+      {activeTab === "activity" && <ActivityTimeline projectId={id} />}
 
       {/* Edit modal */}
       {showEdit && (
