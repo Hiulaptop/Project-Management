@@ -42,3 +42,8 @@ next-env.d.ts
 
 */**/generated
 */**/migrations
+
+openspec
+.github
+.cursor
+sheetkhoinghiep

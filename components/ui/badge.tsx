@@ -1,4 +1,4 @@
-import type { DeadlineStatus } from "@/lib/types";
+import type { DeadlineStatus, DeadlinePriority } from "@/lib/types";
 
 const statusConfig: Record<DeadlineStatus, { label: string; color: string }> = {
   TODO: { label: "Todo", color: "bg-slate-100 text-slate-700" },
@@ -13,8 +13,14 @@ const roleConfig: Record<string, { label: string; color: string }> = {
   MEMBER: { label: "Member", color: "bg-slate-100 text-slate-700" },
 };
 
+const priorityConfig: Record<DeadlinePriority, { label: string; color: string }> = {
+  HIGH: { label: "Cao", color: "bg-red-100 text-red-700" },
+  MEDIUM: { label: "Trung bình", color: "bg-amber-100 text-amber-700" },
+  LOW: { label: "Thấp", color: "bg-green-100 text-green-700" },
+};
+
 interface BadgeProps {
-  variant?: "status" | "role" | "custom";
+  variant?: "status" | "role" | "priority" | "custom";
   value: string;
   className?: string;
 }
@@ -26,6 +32,8 @@ export default function Badge({ variant = "custom", value, className = "" }: Bad
     config = statusConfig[value as DeadlineStatus];
   } else if (variant === "role" && value in roleConfig) {
     config = roleConfig[value];
+  } else if (variant === "priority" && value in priorityConfig) {
+    config = priorityConfig[value as DeadlinePriority];
   }
 
   return (

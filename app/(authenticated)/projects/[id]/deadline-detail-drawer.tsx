@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Deadline, ProjectRole, DeadlineStatus } from "@/lib/types";
+import type { Deadline, ProjectRole, DeadlineStatus, DeadlinePriority } from "@/lib/types";
 import { deadlines as dlApi } from "@/lib/api";
 import { Button, Input, Textarea, Select } from "@/components/ui/form";
 import Badge from "@/components/ui/badge";
@@ -21,6 +21,11 @@ export default function DeadlineDetailDrawer({ projectId, deadline, myRole, onCl
     title: deadline.title,
     description: deadline.description || "",
     deadline_date: deadline.deadline_date.split("T")[0],
+    priority: deadline.priority || "MEDIUM",
+    completion: deadline.completion ?? 0,
+    target: deadline.target || "",
+    result_links: deadline.result_links || "",
+    output: deadline.output || "",
   });
   const [feedbackText, setFeedbackText] = useState(deadline.feedback || "");
   const [loading, setLoading] = useState(false);
@@ -35,6 +40,11 @@ export default function DeadlineDetailDrawer({ projectId, deadline, myRole, onCl
         title: editForm.title,
         description: editForm.description,
         deadline_date: editForm.deadline_date,
+        priority: editForm.priority,
+        completion: editForm.completion,
+        target: editForm.target,
+        result_links: editForm.result_links,
+        output: editForm.output,
       });
       onRefresh();
     } catch (err) {
@@ -108,6 +118,30 @@ export default function DeadlineDetailDrawer({ projectId, deadline, myRole, onCl
               <Input label="Tiêu đề" value={editForm.title} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))} />
               <Textarea label="Mô tả" value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={3} />
               <Input label="Ngày hết hạn" type="date" value={editForm.deadline_date} onChange={(e) => setEditForm((f) => ({ ...f, deadline_date: e.target.value }))} />
+              <Select
+                label="Độ ưu tiên"
+                options={[
+                  { value: "HIGH", label: "Cao" },
+                  { value: "MEDIUM", label: "Trung bình" },
+                  { value: "LOW", label: "Thấp" },
+                ]}
+                value={editForm.priority}
+                onChange={(e) => setEditForm((f) => ({ ...f, priority: e.target.value as DeadlinePriority }))}
+              />
+              <div>
+                <label className="text-sm font-medium text-foreground">Hoàn thành: {editForm.completion}%</label>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={editForm.completion}
+                  onChange={(e) => setEditForm((f) => ({ ...f, completion: Number(e.target.value) }))}
+                  className="w-full mt-1"
+                />
+              </div>
+              <Input label="Mục tiêu" value={editForm.target} onChange={(e) => setEditForm((f) => ({ ...f, target: e.target.value }))} placeholder="Mục tiêu cần đạt" />
+              <Input label="Sản phẩm đầu ra" value={editForm.output} onChange={(e) => setEditForm((f) => ({ ...f, output: e.target.value }))} placeholder="Kết quả mong đợi" />
+              <Input label="Link kết quả" value={editForm.result_links} onChange={(e) => setEditForm((f) => ({ ...f, result_links: e.target.value }))} placeholder="URL kết quả" />
               <div className="flex gap-2">
                 <Button size="sm" loading={loading} onClick={handleSave}>Lưu</Button>
                 <Button size="sm" variant="secondary" onClick={() => setIsEditing(false)}>Huỷ</Button>
@@ -144,6 +178,34 @@ export default function DeadlineDetailDrawer({ projectId, deadline, myRole, onCl
                 />
               </div>
 
+              {/* Priority */}
+              {deadline.priority && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground">Ưu tiên:</span>
+                  <Badge variant="priority" value={deadline.priority} />
+                </div>
+              )}
+
+              {/* Completion bar */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm text-muted-foreground">Hoàn thành</span>
+                  <span className="text-sm font-medium text-card-foreground">{deadline.completion}%</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-secondary">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      deadline.completion === 100
+                        ? "bg-green-500"
+                        : deadline.completion >= 50
+                        ? "bg-blue-500"
+                        : "bg-amber-500"
+                    }`}
+                    style={{ width: `${deadline.completion}%` }}
+                  />
+                </div>
+              </div>
+
               {/* Metadata */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -158,6 +220,32 @@ export default function DeadlineDetailDrawer({ projectId, deadline, myRole, onCl
                   <p className="font-medium text-card-foreground">{deadline.setter?.fullname || "N/A"}</p>
                 </div>
               </div>
+
+              {/* Extended fields */}
+              {(deadline.target || deadline.output || deadline.result_links) && (
+                <div className="space-y-3 rounded-lg bg-secondary/30 p-4">
+                  {deadline.target && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Mục tiêu</p>
+                      <p className="text-sm text-card-foreground mt-0.5">{deadline.target}</p>
+                    </div>
+                  )}
+                  {deadline.output && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Sản phẩm đầu ra</p>
+                      <p className="text-sm text-card-foreground mt-0.5">{deadline.output}</p>
+                    </div>
+                  )}
+                  {deadline.result_links && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Link kết quả</p>
+                      <a href={deadline.result_links} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline mt-0.5 break-all">
+                        {deadline.result_links}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 

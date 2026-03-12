@@ -38,6 +38,18 @@ const navItems = [
     ),
   },
   {
+    label: "Trò chuyện",
+    href: "/chat",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M3 4.5C3 3.67157 3.67157 3 4.5 3H15.5C16.3284 3 17 3.67157 17 4.5V12.5C17 13.3284 16.3284 14 15.5 14H7L4 17V14H4.5C3.67157 14 3 13.3284 3 12.5V4.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        <circle cx="7" cy="9" r="0.75" fill="currentColor" />
+        <circle cx="10" cy="9" r="0.75" fill="currentColor" />
+        <circle cx="13" cy="9" r="0.75" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
     label: "Hồ sơ",
     href: "/profile",
     icon: (

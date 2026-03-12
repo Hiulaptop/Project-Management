@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { serializeBigInt } from "@/lib/json";
+import { logActivity } from "@/lib/activity";
 
 // GET /api/projects/:id/members
 export async function GET(
@@ -137,6 +138,8 @@ export async function POST(
                 },
             },
         });
+
+        await logActivity(projectId, session.userId, "MEMBER_ADDED", `Added member: ${member.user.fullname}`);
 
         return NextResponse.json(
             { message: "Member added successfully", member: serializeBigInt(member) },

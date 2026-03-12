@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { serializeBigInt } from "@/lib/json";
+import { logActivity } from "@/lib/activity";
 import { DeadlineStatus } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string; deadlineId: string }> };
@@ -53,10 +54,16 @@ export async function PATCH(
             );
         }
 
+        const updateData: Record<string, unknown> = { status };
+        // Auto-set completion to 100% when DONE
+        if (status === "DONE") updateData.completion = 100;
+
         const deadline = await db.deadlines.update({
             where: { id: dlId },
-            data: { status },
+            data: updateData,
         });
+
+        await logActivity(projectId, session.userId, "DEADLINE_STATUS_CHANGED", `Changed status of "${existing.title}" to ${status}`);
 
         return NextResponse.json(
             { message: "Status updated", deadline: serializeBigInt(deadline) },

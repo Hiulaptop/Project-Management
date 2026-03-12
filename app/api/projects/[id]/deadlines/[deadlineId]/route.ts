@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { serializeBigInt } from "@/lib/json";
+import { logActivity } from "@/lib/activity";
 
 type Params = { params: Promise<{ id: string; deadlineId: string }> };
 
@@ -113,13 +114,21 @@ export async function PATCH(
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const { title, description, deadline_date } = await request.json();
+        const { title, description, deadline_date, priority, completion, target, result_links, output } = await request.json();
 
         const updateData: Record<string, unknown> = {};
         if (title !== undefined) updateData.title = title;
         if (description !== undefined) updateData.description = description;
         if (deadline_date !== undefined)
             updateData.deadline_date = new Date(deadline_date);
+        if (priority !== undefined) updateData.priority = priority;
+        if (completion !== undefined) {
+            const c = Math.max(0, Math.min(100, Number(completion)));
+            updateData.completion = c;
+        }
+        if (target !== undefined) updateData.target = target;
+        if (result_links !== undefined) updateData.result_links = result_links;
+        if (output !== undefined) updateData.output = output;
 
         const deadline = await db.deadlines.update({
             where: { id: dlId },
@@ -137,6 +146,8 @@ export async function PATCH(
                 },
             },
         });
+
+        await logActivity(projectId, session.userId, "DEADLINE_UPDATED", `Updated deadline: ${deadline.title}`);
 
         return NextResponse.json(
             { message: "Deadline updated successfully", deadline: serializeBigInt(deadline) },
@@ -197,6 +208,8 @@ export async function DELETE(
         }
 
         await db.deadlines.delete({ where: { id: dlId } });
+
+        await logActivity(projectId, session.userId, "DEADLINE_DELETED", `Deleted deadline: ${existing.title}`);
 
         return NextResponse.json(
             { message: "Deadline deleted successfully" },
