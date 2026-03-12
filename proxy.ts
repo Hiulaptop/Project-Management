@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
-const secretKey = process.env.JWT_SECRET;
-const key = new TextEncoder().encode(secretKey);
+// Lazy key initialization — read env var at request time, not module load time.
+// proxy.ts may initialize before .env is fully loaded into the process.
+function getJwtKey(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET environment variable is not set");
+  }
+  return new TextEncoder().encode(secret);
+}
 
 // Paths that never require authentication
 const publicPagePaths = ["/auth/signin", "/auth/signup"];
@@ -11,6 +18,7 @@ const publicApiPaths = ["/api/auth/signin", "/api/auth/signup"];
 
 async function verifyJwt(token: string): Promise<boolean> {
   try {
+    const key = getJwtKey();
     await jwtVerify(token, key, { algorithms: ["HS256"] });
     return true;
   } catch {
