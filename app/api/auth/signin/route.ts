@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { createSession } from "@/lib/auth";
+import { createSession, getSessionCookieOptions } from "@/lib/auth";
 import db from "@/lib/db";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -39,12 +39,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             );
         }
 
-        await createSession(user.id, user.email);
+        const token = await createSession(user.id, user.email);
+        const cookieOptions = getSessionCookieOptions(request);
 
-        return NextResponse.json(
+        const response = NextResponse.json(
             { message: "Signed in successfully" },
             { status: 200 }
         );
+        response.cookies.set(cookieOptions.name, token, cookieOptions);
+        return response;
     }
     catch (error) {
         console.error("Signin error:", error);

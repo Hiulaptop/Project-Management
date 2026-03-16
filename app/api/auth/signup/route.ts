@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { createSession } from "@/lib/auth";
+import { createSession, getSessionCookieOptions } from "@/lib/auth";
 import db from "@/lib/db";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -57,11 +57,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         const userId = user.id;
 
-        await createSession(userId, email);
-        return NextResponse.json(
+        const token = await createSession(userId, email);
+        const cookieOptions = getSessionCookieOptions(request);
+        const response = NextResponse.json(
             { message: "User created successfully" },
             { status: 201 }
-        )
+        );
+        response.cookies.set(cookieOptions.name, token, cookieOptions);
+        return response;
     } catch (error) {
         console.error("Signup error:", error);
         return NextResponse.json(
