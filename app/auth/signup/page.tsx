@@ -1,13 +1,11 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/api";
 import { Input, Button } from "@/components/ui/form";
 
 export default function SignUpPage() {
-  const router = useRouter();
   const [form, setForm] = useState({
     fullname: "",
     email: "",
@@ -40,7 +38,7 @@ export default function SignUpPage() {
     try {
       const { confirmPassword: _, ...body } = form;
       await auth.signup(body);
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
     } finally {
